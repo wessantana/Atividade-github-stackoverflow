@@ -1,0 +1,7 @@
+.env
+*.key
+config/secrets/*.json
+data/
+logs/
+*.csv
+*.log
