@@ -59,11 +59,6 @@ graph LR
 # Tokens de API
 GITHUB_TOKEN=seu_token_aqui
 STACKOVERFLOW_KEY=sua_key_aqui
-
-# Configurações do PostgreSQL
-POSTGRES_USER=airflow
-POSTGRES_PASSWORD=airflow
-POSTGRES_DB=etl_project
 ```
 
 2. Inicie os containers:
@@ -220,4 +215,4 @@ Métricas-chave extraídas do pipeline:
 
 ---
 
-> 📅 *Documentação atualizada em {{03/05/25}} por {{Weslley Santana}}*
+> 📅 *Documentação atualizada em 03/05/25 por Weslley Santana*
