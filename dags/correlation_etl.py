@@ -10,6 +10,21 @@ load_dotenv()
 
 def analyze_correlation():
     conn = psycopg2.connect(host='postgres', dbname='airflow', user='airflow', password='airflow')
+    language_tag_map = {
+    'python': 'python',
+    'javascript': 'javascript',
+    'typescript': 'typescript',
+    'c#': 'c-sharp',
+    'c++': 'c++',
+    'java': 'java',
+    'php': 'php',
+    'go': 'go',
+    'ruby': 'ruby',
+    'rust': 'rust',
+    'kotlin': 'kotlin',
+    'swift': 'swift',
+    }
+
     
     github_df = pd.read_sql('''
         SELECT language, AVG(stars) as avg_stars, 
@@ -31,17 +46,20 @@ def analyze_correlation():
     github_df['language'] = github_df['language'].str.lower().str.strip()
     stack_df['tags'] = stack_df['tags'].str.lower().str.strip()
 
+    github_df = github_df[github_df['language'].isin(language_tag_map.keys())].copy()
+    github_df['tag'] = github_df['language'].map(language_tag_map)
+
     merged_df = pd.merge(
         github_df,
         stack_df,
-        left_on='language',
+        left_on='tag',
         right_on='tags',
         how='inner'
     )
     
     merged_df['questions_per_star'] = merged_df['question_count'] / merged_df['avg_stars']
     merged_df['commits_per_question'] = merged_df['total_commits'] / merged_df['question_count']
-    merged_df.drop(columns=['tags'], inplace=True)
+    merged_df.drop(columns=['tags', 'tag'], inplace=True)
 
     merged_df.to_csv('/data/correlation_analysis.csv', index=False)
     conn.close()
