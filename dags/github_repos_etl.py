@@ -10,7 +10,12 @@ load_dotenv()
 
 def extract_popular_repos():
     import json  # útil para debug em caso de erro
-    languages = ['python', 'javascript', 'java', 'go']
+    languages = [
+    'python', 'javascript', 'java', 'go', 'typescript', 'c++', 'c#',
+    'ruby', 'rust', 'kotlin', 'php', 'swift', 'scala', 'dart',
+    'shell', 'r', 'elixir', 'haskell', 'objective-c', 'perl'
+    ]
+
     repos_data = []
 
     for lang in languages:

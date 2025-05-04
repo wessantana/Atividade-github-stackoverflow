@@ -11,13 +11,28 @@ load_dotenv()
 
 def extract_and_analyze_github_activity():
     """Extrai e analisa dados de atividade de repositórios do GitHub"""
-    repos = ['tensorflow/tensorflow', 'microsoft/vscode', 'pytorch/pytorch']
-    analysis_results = []
     token = os.getenv('GITHUB_TOKEN')
     headers = {
         'Accept': 'application/vnd.github.v3+json',
         'Authorization': f'token {token}'
     }
+
+    print("[INFO] Buscando repositórios mais ativos...")
+    search_url = 'https://api.github.com/search/repositories?q=pushed:>2024-12-01+stars:>1000&sort=updated&order=desc&per_page=75'
+    search_resp = requests.get(search_url, headers=headers)
+
+    if search_resp.status_code != 200:
+        print(f"[ERROR] Erro ao buscar repositórios ativos: {search_resp.json().get('message')}")
+        return
+
+    repos_data = search_resp.json().get('items', [])
+    repos = [repo['full_name'] for repo in repos_data]
+
+    if not repos:
+        print("[WARN] Nenhum repositório encontrado.")
+        return
+
+    analysis_results = []
 
     for repo in repos:
         print(f"[INFO] Analisando {repo}")
@@ -28,7 +43,7 @@ def extract_and_analyze_github_activity():
             print(f"[ERROR] Erro ao acessar dados do repositório {repo}: {repo_data['message']}")
             continue
 
-        # Dados de commits
+        # otimizar isso. Provavelmente não é necessário fazer outra requisição.
         commits_resp = requests.get(f'https://api.github.com/repos/{repo}/stats/commit_activity', headers=headers)
 
         if commits_resp.status_code == 202:
@@ -56,6 +71,7 @@ def extract_and_analyze_github_activity():
             'last_updated': repo_data.get('updated_at'),
             'analysis_date': datetime.utcnow().date()
         })
+
     df = pd.DataFrame(analysis_results).drop_duplicates()
     if df.empty:
         print("[WARN] DataFrame vazio! Nenhum dado foi coletado.")
@@ -80,7 +96,6 @@ def load_analysis_to_db():
     conn = psycopg2.connect(host='postgres', port=5432, dbname='airflow', user='airflow', password='airflow')
     cur = conn.cursor()
 
-    # Cria tabela nova
     cur.execute('''
         CREATE TABLE IF NOT EXISTS public.repo_analysis (
             repository TEXT PRIMARY KEY,
