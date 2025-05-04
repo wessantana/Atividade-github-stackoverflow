@@ -82,19 +82,26 @@ def load_analysis_to_db():
 
     # Cria tabela nova
     cur.execute('''
-    CREATE TABLE IF NOT EXISTS public.repo_analysis (
-        repository TEXT PRIMARY KEY,
-        stars INTEGER,
-        forks INTEGER,
-        total_commits_last_year INTEGER,
-        avg_weekly_commits NUMERIC(10,2),
-        open_issues INTEGER,
-        language TEXT,
-        last_updated TIMESTAMP,
-        analysis_date DATE,
-        commits_per_star NUMERIC(10,4),
-        activity_score NUMERIC(10,2)
-    )
+        CREATE TABLE IF NOT EXISTS public.repo_analysis (
+            repository TEXT PRIMARY KEY,
+            stars INTEGER,
+            forks INTEGER,
+            total_commits_last_year INTEGER,
+            avg_weekly_commits NUMERIC(10,2),
+            open_issues INTEGER,
+            language TEXT,
+            last_updated TIMESTAMP,
+            analysis_date DATE,
+            commits_per_star NUMERIC(10,4),
+            activity_score NUMERIC(10,2)
+        );
+
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'repo_analysis' AND indexname = 'repo_analysis_pkey') THEN
+                CREATE INDEX repo_analysis_pkey ON public.repo_analysis (repository);
+            END IF;
+        END $$;
     ''')
 
     csv_path = '/data/github_analysis.csv'

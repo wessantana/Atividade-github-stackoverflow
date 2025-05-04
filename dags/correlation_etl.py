@@ -19,14 +19,18 @@ def analyze_correlation():
     ''', conn)
     
     stack_df = pd.read_sql('''
-        SELECT tags, COUNT(*) as question_count,
-               AVG(answer_count) as avg_answers
-        FROM stackoverflow_questions
+        SELECT tags,
+               COUNT(*) as question_count,
+               AVG(answer_count) as avg_answers,
+               AVG(score) as avg_score,
+               AVG(CASE WHEN is_answered THEN 1 ELSE 0 END) as answer_ratio
+        FROM public.stackoverflow_questions
         GROUP BY tags
     ''', conn)
     
     github_df['language'] = github_df['language'].str.lower().str.strip()
     stack_df['tags'] = stack_df['tags'].str.lower().str.strip()
+
     merged_df = pd.merge(
         github_df,
         stack_df,
@@ -38,6 +42,7 @@ def analyze_correlation():
     merged_df['questions_per_star'] = merged_df['question_count'] / merged_df['avg_stars']
     merged_df['commits_per_question'] = merged_df['total_commits'] / merged_df['question_count']
     merged_df.drop(columns=['tags'], inplace=True)
+
     merged_df.to_csv('/data/correlation_analysis.csv', index=False)
     conn.close()
 
@@ -46,22 +51,27 @@ def load_correlation_data():
     cur = conn.cursor()
     
     cur.execute('''
-    CREATE TABLE IF NOT EXISTS public.github_stack_correlation (
-        language TEXT PRIMARY KEY,
-        avg_stars NUMERIC(10,2),
-        total_commits INTEGER,
-        question_count INTEGER,
-        avg_answers NUMERIC(10,2),
-        questions_per_star NUMERIC(10,4),
-        commits_per_question NUMERIC(10,2))
+
+        CREATE TABLE IF NOT EXISTS public.github_stack_correlation (
+            id SERIAL PRIMARY KEY,
+            language TEXT,
+            avg_stars NUMERIC(10,2),
+            total_commits INTEGER,
+            question_count INTEGER,
+            avg_answers NUMERIC(10,2),
+            avg_score NUMERIC(10,2),
+            answer_ratio NUMERIC(10,4),
+            questions_per_star NUMERIC(10,4),
+            commits_per_question NUMERIC(10,2)
+        );
     ''')
     
     with open('/data/correlation_analysis.csv', 'r') as f:
         next(f)
-        cur.copy_expert("COPY github_stack_correlation FROM STDIN WITH CSV", f)
-    conn.commit()
-    cur.close()
-    conn.close()
+        cur.copy_expert("COPY github_stack_correlation (language, avg_stars, total_commits, question_count, avg_answers, avg_score, answer_ratio, questions_per_star, commits_per_question) FROM STDIN WITH CSV", f)
+        conn.commit()
+        cur.close()
+        conn.close()
 
 dag = DAG(
     'github_stack_correlation',
