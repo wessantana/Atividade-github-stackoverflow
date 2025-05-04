@@ -21,9 +21,9 @@ def generate_visualization_data():
             COUNT(s.question_id) as question_count,
             AVG(s.answer_ratio) as answer_ratio,
             c.questions_per_star
-        FROM repo_analysis r
-        LEFT JOIN stackoverflow_questions s ON r.language = ANY(string_to_array(s.tags, ', '))
-        LEFT JOIN github_stack_correlation c ON r.language = c.language
+        FROM public.repo_analysis r
+        LEFT JOIN public.stackoverflow_questions s ON r.language = ANY(string_to_array(s.tags, ', '))
+        LEFT JOIN public.github_stack_correlation c ON r.language = c.language
         GROUP BY r.language, c.questions_per_star
     ''', conn)
     
@@ -42,7 +42,7 @@ with dag:
     wait_for_repo_analysis = ExternalTaskSensor(
         task_id='wait_for_repo_analysis',
         external_dag_id='github_repo_analysis',
-        external_task_id='your_final_task_id_in_that_dag',  # troque pelo nome real da última task
+        external_task_id='load_analysis_to_db',
         allowed_states=['success'],
         failed_states=['failed', 'skipped'],
         poke_interval=60,

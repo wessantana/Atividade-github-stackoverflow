@@ -56,8 +56,7 @@ def extract_and_analyze_github_activity():
             'last_updated': repo_data.get('updated_at'),
             'analysis_date': datetime.utcnow().date()
         })
-
-    df = pd.DataFrame(analysis_results)
+    df = pd.DataFrame(analysis_results).drop_duplicates()
     if df.empty:
         print("[WARN] DataFrame vazio! Nenhum dado foi coletado.")
         return
@@ -83,7 +82,7 @@ def load_analysis_to_db():
 
     # Cria tabela nova
     cur.execute('''
-    CREATE TABLE public.repo_analysis (
+    CREATE TABLE IF NOT EXISTS public.repo_analysis (
         repository TEXT PRIMARY KEY,
         stars INTEGER,
         forks INTEGER,
@@ -112,6 +111,17 @@ def load_analysis_to_db():
             avg_weekly_commits, open_issues, language,
             last_updated, analysis_date, commits_per_star, activity_score
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (repository) DO UPDATE SET
+            stars = EXCLUDED.stars,
+            forks = EXCLUDED.forks,
+            total_commits_last_year = EXCLUDED.total_commits_last_year,
+            avg_weekly_commits = EXCLUDED.avg_weekly_commits,
+            open_issues = EXCLUDED.open_issues,
+            language = EXCLUDED.language,
+            last_updated = EXCLUDED.last_updated,
+            analysis_date = EXCLUDED.analysis_date,
+            commits_per_star = EXCLUDED.commits_per_star,
+            activity_score = EXCLUDED.activity_score
         ''', (
             row['repository'], row['stars'], row['forks'],
             row['total_commits_last_year'], row['avg_weekly_commits'], row['open_issues'],

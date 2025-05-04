@@ -117,7 +117,8 @@ dag = DAG(
     default_args=default_args,
     description='Extrai e carrega dados do StackOverflow por tags',
     schedule_interval='@daily',
-    catchup=False
+    catchup=False,
+    max_active_runs=1
 )
 
 with dag:

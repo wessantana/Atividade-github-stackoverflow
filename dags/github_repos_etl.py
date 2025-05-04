@@ -57,7 +57,7 @@ def load_popular_repos():
     cur = conn.cursor()
     
     cur.execute('''
-    CREATE TABLE IF NOT EXISTS popular_repos (
+    CREATE TABLE IF NOT EXISTS public.popular_repos (
         name TEXT PRIMARY KEY,
         language TEXT,
         stars INTEGER,
@@ -66,10 +66,25 @@ def load_popular_repos():
         last_updated TIMESTAMP,
         stars_forks_ratio NUMERIC(10,2))
     ''')
-    
-    with open('/data/popular_repos.csv', 'r') as f:
-        next(f)
-        cur.copy_expert("COPY popular_repos FROM STDIN WITH CSV", f)
+    # Leitura do CSV
+    df = pd.read_csv('/data/popular_repos.csv')
+
+    # Inserção segura (evita duplicatas com ON CONFLICT)
+    for _, row in df.iterrows():
+        cur.execute("""
+            INSERT INTO public.popular_repos (name, language, stars, forks, open_issues, last_updated, stars_forks_ratio)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (name) DO NOTHING
+        """, (
+            row['name'],
+            row['language'],
+            int(row['stars']),
+            int(row['forks']),
+            int(row['open_issues']),
+            row['last_updated'],
+            float(row['stars_forks_ratio'])
+        ))
+
     conn.commit()
     cur.close()
     conn.close()

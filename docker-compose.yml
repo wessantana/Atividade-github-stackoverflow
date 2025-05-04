@@ -48,11 +48,12 @@ services:
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
       - AIRFLOW__API__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
+      - AIRFLOW__WEB_SERVER__SECRET_KEY=mysecretkey
     volumes:
-      - ./dags:/dags
-      - ./logs:/logs
-      - ./plugins:/plugins
-      - ./config:/config
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./config:/opt/airflow/config
       - ./data:/data
     ports:
       - "8080:8080"
@@ -83,6 +84,7 @@ services:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEB_SERVER__SECRET_KEY=mysecretkey
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
@@ -106,6 +108,7 @@ services:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEB_SERVER__SECRET_KEY=mysecretkey
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
