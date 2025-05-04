@@ -1,14 +1,12 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:17
+    image: postgres:13
     container_name: postgres_etl
     restart: always
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: etl_project
+      POSTGRES_DB: airflow
     ports:
       - "5432:5432"
     volumes:
@@ -19,6 +17,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   redis:
     image: redis:latest
@@ -35,28 +34,31 @@ services:
     image: apache/airflow:2.7.2
     container_name: airflow_webserver
     restart: always
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/etl_project
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
       - AIRFLOW__API__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
     volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-      - ./config:/opt/airflow/config
+      - ./dags:/dags
+      - ./logs:/logs
+      - ./plugins:/plugins
+      - ./config:/config
       - ./data:/data
     ports:
       - "8080:8080"
     command: >
       bash -c "
+      airflow db init &&
       airflow db migrate &&
       airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin &&
       airflow webserver
@@ -71,11 +73,13 @@ services:
     image: apache/airflow:2.7.2
     container_name: airflow_scheduler
     restart: always
+    env_file:
+      - .env
     depends_on:
       - postgres
       - redis
     environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/etl_project
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
@@ -91,12 +95,14 @@ services:
     image: apache/airflow:2.7.2
     container_name: airflow_worker
     restart: always
+    env_file:
+      - .env
     depends_on:
       - postgres
       - redis
       - scheduler
     environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/etl_project
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CORE__LOAD_EXAMPLES=False

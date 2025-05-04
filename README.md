@@ -181,15 +181,10 @@ git push origin feature/nova-feature
 | Nome                   | Contato                            |
 |------------------------|------------------------------------|
 | Weslley                | weslley.vieirasantana@gmail.com    |
-|------------------------|------------------------------------|
 | Julio Cesar            | juliocafn2004@gmail.com            |
-|------------------------|------------------------------------|
 | Miguel Amaral          | miguel.amaral.sales@gmail.com      |
-|------------------------|------------------------------------|
 | Carlos Henrique Rocha  | carlosrocha1896@gmail.com          |
-|------------------------|------------------------------------|
 | João Pedro             | exemplo@empresa.com                |
-|------------------------|------------------------------------|
 | Lucas Eduardo          | lucaseduardofeeh@gmail.com         |
 
 ---

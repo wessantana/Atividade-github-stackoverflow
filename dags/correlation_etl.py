@@ -1,5 +1,6 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.sensors.external_task import ExternalTaskSensor
 from datetime import datetime, timedelta
 import pandas as pd
 import psycopg2
@@ -8,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def analyze_correlation():
-    conn = psycopg2.connect(host='postgres', dbname='etl_project', user='airflow', password='airflow')
+    conn = psycopg2.connect(host='postgres', dbname='airflow', user='airflow', password='airflow')
     
     github_df = pd.read_sql('''
         SELECT language, AVG(stars) as avg_stars, 
@@ -39,7 +40,7 @@ def analyze_correlation():
     conn.close()
 
 def load_correlation_data():
-    conn = psycopg2.connect(host='postgres', dbname='etl_project', user='airflow', password='airflow')
+    conn = psycopg2.connect(host='postgres', dbname='airflow', user='airflow', password='airflow')
     cur = conn.cursor()
     
     cur.execute('''
@@ -72,6 +73,13 @@ dag = DAG(
 )
 
 with dag:
+    wait_for_repo_analysis = ExternalTaskSensor(
+    task_id='wait_for_repo_analysis',
+    external_dag_id='github_repo_analysis',
+    external_task_id='load_analysis_to_db',  # Última task do DAG anterior
+    mode='reschedule',
+    timeout=3600
+    )
     analyze = PythonOperator(task_id='analyze_correlation', python_callable=analyze_correlation)
     load = PythonOperator(task_id='load_correlation_data', python_callable=load_correlation_data)
-    analyze >> load
+    wait_for_repo_analysis >> analyze >> load

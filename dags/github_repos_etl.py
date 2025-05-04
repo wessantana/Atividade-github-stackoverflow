@@ -9,9 +9,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def extract_popular_repos():
+    import json  # útil para debug em caso de erro
     languages = ['python', 'javascript', 'java', 'go']
     repos_data = []
-    
+
     for lang in languages:
         url = 'https://api.github.com/search/repositories'
         params = {
@@ -20,24 +21,39 @@ def extract_popular_repos():
             'per_page': 20
         }
         headers = {'Authorization': f'token {os.getenv("GITHUB_TOKEN")}'}
-        
         response = requests.get(url, headers=headers, params=params)
-        for repo in response.json()['items']:
+
+        # Verifica erro na resposta
+        if response.status_code != 200:
+            print(f"Erro na API do GitHub ({response.status_code}): {response.text}")
+            continue
+
+        data = response.json()
+        if 'items' not in data:
+            print(f"Resposta inesperada da API para {lang}: {json.dumps(data)}")
+            continue
+
+        for repo in data['items']:
+            forks = repo['forks_count'] if repo['forks_count'] != 0 else 1  # evita divisão por zero
             repos_data.append({
                 'name': repo['full_name'],
                 'language': lang,
                 'stars': repo['stargazers_count'],
                 'forks': repo['forks_count'],
                 'open_issues': repo['open_issues_count'],
-                'last_updated': repo['updated_at']
+                'last_updated': repo['updated_at'],
+                'stars_forks_ratio': repo['stargazers_count'] / forks
             })
-    
-    df = pd.DataFrame(repos_data)
-    df['stars_forks_ratio'] = df['stars'] / df['forks']
-    df.to_csv('/data/popular_repos.csv', index=False)
+
+    if repos_data:
+        df = pd.DataFrame(repos_data)
+        df.to_csv('/data/popular_repos.csv', index=False)
+    else:
+        print("Nenhum dado foi extraído da API.")
+
 
 def load_popular_repos():
-    conn = psycopg2.connect(host='postgres', dbname='etl_project', user='airflow', password='airflow')
+    conn = psycopg2.connect(host='postgres', dbname='airflow', user='airflow', password='airflow')
     cur = conn.cursor()
     
     cur.execute('''
@@ -48,7 +64,7 @@ def load_popular_repos():
         forks INTEGER,
         open_issues INTEGER,
         last_updated TIMESTAMP,
-        stars_forks_ratio NUMERIC(10,2)
+        stars_forks_ratio NUMERIC(10,2))
     ''')
     
     with open('/data/popular_repos.csv', 'r') as f:
