@@ -98,7 +98,8 @@ def load_analysis_to_db():
 
     cur.execute('''
         CREATE TABLE IF NOT EXISTS public.repo_analysis (
-            repository TEXT PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
+            repository TEXT UNIQUE,
             stars INTEGER,
             forks INTEGER,
             total_commits_last_year INTEGER,
@@ -132,7 +133,7 @@ def load_analysis_to_db():
             repository, stars, forks, total_commits_last_year,
             avg_weekly_commits, open_issues, language,
             last_updated, analysis_date, commits_per_star, activity_score
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (repository) DO UPDATE SET
             stars = EXCLUDED.stars,
             forks = EXCLUDED.forks,
